@@ -1,6 +1,79 @@
+/* eslint-disable react-native/no-inline-styles */
 import React from 'react';
 import type {PropsWithChildren} from 'react';
-import {SafeAreaView, ScrollView, StyleSheet, Text, View} from 'react-native';
+import {FlatList, SafeAreaView, StyleSheet, Text, View} from 'react-native';
+
+import {
+  ApolloClient,
+  InMemoryCache,
+  ApolloProvider,
+  gql,
+  useQuery,
+  ApolloError,
+} from '@apollo/client';
+
+const client = new ApolloClient({
+  uri: 'https://swapi-graphql.netlify.app/.netlify/functions/index',
+  cache: new InMemoryCache(),
+});
+
+interface StarShipInfo {
+  MGLT: number;
+  cargoCapacity: number;
+  consumables: string;
+  costInCredits: number;
+  created: string;
+  crew: string;
+  hyperdriveRating: number;
+  id: string;
+  length: number;
+  manufacturers: string[];
+  maxAtmospheringSpeed: number;
+  model: string;
+  name: string;
+  passengers: string;
+  starshipClass: string;
+}
+
+interface StarShipsData {
+  allStarships: {
+    __typename: 'StarshipsConnection';
+    starships: StarShipInfo[];
+  };
+}
+
+interface StarShipItemProps {
+  info: StarShipInfo;
+}
+
+interface EmptyListProps {
+  loading: boolean;
+  error?: ApolloError;
+}
+
+const GET_STARSHIPS = gql`
+  query GetAllStarShips {
+    allStarships {
+      starships {
+        MGLT
+        cargoCapacity
+        consumables
+        costInCredits
+        created
+        crew
+        hyperdriveRating
+        id
+        length
+        manufacturers
+        maxAtmospheringSpeed
+        model
+        name
+        passengers
+        starshipClass
+      }
+    }
+  }
+`;
 
 type SectionProps = PropsWithChildren<{
   title: string;
@@ -15,19 +88,70 @@ function Section({children, title}: SectionProps): JSX.Element {
   );
 }
 
+const StarShipItem: React.FC<StarShipItemProps> = ({info}) => {
+  return (
+    <View
+      style={{
+        padding: 16,
+        borderWidth: 1,
+        borderColor: 'red',
+        borderRadius: 16,
+        margin: 16,
+      }}>
+      <Text>Name: {info.name}</Text>
+      <Text>Model: {info.model}</Text>
+      <Text>Manufacturers: {info.manufacturers.join(', ')}</Text>
+      <Text>MGLT: {info.MGLT}</Text>
+      <Text>Cargo Capacity: {info.cargoCapacity}</Text>
+      <Text>Consumables: {info.consumables}</Text>
+      <Text>Cost In Credits: {info.costInCredits}</Text>
+      <Text>Crew: {info.crew}</Text>
+      <Text>Hyper Drive Rating: {info.hyperdriveRating}</Text>
+    </View>
+  );
+};
+
+const EmptyList: React.FC<EmptyListProps> = ({loading, error}) => (
+  <View>
+    {loading ? (
+      <Text>Loading ...</Text>
+    ) : error ? (
+      <Text>Error !!!!!</Text>
+    ) : (
+      <Text>No Records there yet</Text>
+    )}
+  </View>
+);
+
+const StarShipList: React.FC = () => {
+  const {loading, error, data} = useQuery<StarShipsData>(GET_STARSHIPS);
+  const renderStarShip = ({item}: {item: StarShipInfo; index: number}) => (
+    <StarShipItem info={item} />
+  );
+  return (
+    <FlatList
+      data={data?.allStarships?.starships ?? []}
+      ListEmptyComponent={<EmptyList loading={loading} error={error} />}
+      renderItem={renderStarShip}
+      keyExtractor={(item: StarShipInfo, _: number) => `starship_${item.id}`}
+    />
+  );
+};
+
 function App(): JSX.Element {
   const isHermes = () => !!global.HermesInternal as Boolean;
 
   return (
-    <SafeAreaView>
-      <ScrollView contentInsetAdjustmentBehavior="automatic">
+    <ApolloProvider client={client}>
+      <SafeAreaView>
         <View>
           <Section title="Hermes Enabled">
             {isHermes ? 'Enabled' : 'Disabled'}
           </Section>
         </View>
-      </ScrollView>
-    </SafeAreaView>
+        <StarShipList />
+      </SafeAreaView>
+    </ApolloProvider>
   );
 }
 
