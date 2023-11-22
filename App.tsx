@@ -1,5 +1,5 @@
 /* eslint-disable react-native/no-inline-styles */
-import React, {useEffect, useState} from 'react';
+import React, {useEffect, useMemo, useState} from 'react';
 import type {PropsWithChildren} from 'react';
 import {
   FlatList,
@@ -20,6 +20,7 @@ import {
   ApolloError,
 } from '@apollo/client';
 import Geolocation, {GeoPosition} from 'react-native-geolocation-service';
+import {getDistance, convertDistance} from 'geolib';
 
 const client = new ApolloClient({
   uri: 'https://swapi-graphql.netlify.app/.netlify/functions/index',
@@ -187,14 +188,36 @@ function App(): JSX.Element {
     }
   }, [hasPermission]);
 
+  const distance = useMemo(() => {
+    if (location) {
+      return convertDistance(
+        getDistance(
+          {
+            lon: location.longitude,
+            lat: location.latitude,
+          },
+          {
+            lon: 33.814831976267016,
+            lat: -117.92057887641796,
+          },
+        ),
+        'mi',
+      );
+    }
+    return false;
+  }, [location]);
+
   return (
     <ApolloProvider client={client}>
       <SafeAreaView>
-        <View>
-          <Section title="Hermes Enabled">
-            {isHermes ? 'Enabled' : 'Disabled'}
+        <Section title="Hermes Enabled">
+          {isHermes ? 'Enabled' : 'Disabled'}
+        </Section>
+        {distance && (
+          <Section title="Distance to Star Wars Land">
+            {distance.toFixed(2)} miles
           </Section>
-        </View>
+        )}
         <StarShipList />
       </SafeAreaView>
     </ApolloProvider>
