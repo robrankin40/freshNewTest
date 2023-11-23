@@ -9,8 +9,10 @@ export type SectionProps = PropsWithChildren<{
 export function Section({children, title}: SectionProps): JSX.Element {
   return (
     <View style={styles.sectionContainer}>
-      <Text>{title}</Text>
-      <Text style={[styles.sectionDescription]}>{children}</Text>
+      <Text testID="section_title">{title}</Text>
+      <Text style={[styles.sectionDescription]} testID="section_body">
+        {children}
+      </Text>
     </View>
   );
 }
